@@ -50,7 +50,7 @@ export default function Home() {
           />
         </div>
       </div>
-      <h1 className="text-4xl font-bold text-center">Base Mini App Template</h1>
+      <h1 className="text-4xl font-bold text-center">Base Mini App Template1</h1>
       <p className="text-center text-gray-600">
         Welcome to your new Base MiniApp!
       </p>
