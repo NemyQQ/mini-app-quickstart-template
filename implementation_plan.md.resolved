@@ -1,0 +1,70 @@
+# Real-Time Social Investment Feed Recommendation
+
+To fetch real-time data of people sharing active investments on Farcaster and combine it with OnchainKit, I recommend a 3-layered architecture: **Ingest (Neynar/Airstack) -> Filter (Logic) -> Verify (On-chain).**
+
+## 1. Data Source (Ingestion)
+
+### Option A: Airstack (Best for "Social + Holdings" Correlation)
+Your current codebase uses specific keyword searches. To pinpoint "active investments", you should use Airstack's ability to cross-reference social posts with wallet balances.
+*   **Query Strategy**: "Find casts containing '$TOKEN' BUT ONLY from users who hold > $100 worth of that token."
+*   **Why**: Removes larpers (people talking without creating action).
+
+### Option B: Neynar (Best for Pure Speed & Webhooks)
+For a truly "Real-time" feel (like a ticker), Neynar Webhooks are superior.
+*   **Webhook**: Subscribe to casts with specific parent URLs (DeFi primitive frames) or keywords.
+*   **Feed API**: Use the `feed/filter` endpoint to get a stream of content from a high-quality "Alpha List" of users (e.g., users with >10k followers).
+
+## 2. Filtering for "Active Investments"
+
+Natural language is noisy. To find *actual* investments, look for:
+1.  **Transaction Frames**: Filter for casts that contain a Frame with a "Transaction" button. This often implies a direct actionable investment.
+2.  **Specific Phrasing**: Regex filters for "bought", "aped", "swapped", "LPing".
+3.  **Onchain Activity**: Instead of just relying on text, listen for **Base** events (Swap event on Uniswap/Aerodrome) and check if the wallet address is linked to a Farcaster ID (using the `verifications` mapping).
+
+## 3. Implementation Plan (Recommended Stack)
+
+1.  **Backend (Next.js API Route)**:
+    *   Create a webhook receiver (e.g., `/api/webhooks/neynar`).
+    *   When a cast matches criteria (e.g., "vitalik.eth casted about '$AERO'"), push it to your frontend (pusher/socket.io) or database.
+
+2.  **Verification Helper**:
+    *   When a signal comes in, verify it on-chain: *Does this user actually have the token in their wallet?*
+    *   Use `wagmi` or `viem` to quick-check the user's connected wallet balance for that token.
+
+3.  **OnchainKit Enhancement**:
+    *   Display these signals as a "Live Feed".
+    *   Add a "Copy Trade" button using OnchainKit's `<Swap />` component pre-filled with the token mentioned.
+
+## Example Airstack Query for "Verified Shilling"
+
+```graphql
+query VerifiedAlpha {
+  FarcasterCasts(
+    input: {
+      filter: {
+        text: {_pattern: "$DEGEN"},
+        castedBy: {
+            tokenBalances: {
+                tokenAddress: {_eq: "0x4ed4..."}, 
+                formattedAmount: {_gt: 1000}
+            }
+        }
+      },
+      blockchain: ALL
+    }
+  ) {
+    Cast {
+      text
+      castedBy {
+        profileName
+        tokenBalances {
+            formattedAmount
+        }
+      }
+    }
+  }
+}
+```
+
+## Summary Recommendation
+**Use Airstack** for the query logic because looking up a user's balance *while* searching their casts is their unique superpower. It ensures you only see investments from people with "Skin in the game".
