@@ -13,18 +13,84 @@ import {
     Avatar,
     Name,
 } from '@coinbase/onchainkit/identity';
-import { useAccount } from 'wagmi';
+import { useAccount, useBalance } from 'wagmi';
+import { useMemo } from 'react';
 
-interface Asset {
-    symbol: string;
-    name: string;
-    amount: number;
-    value: number;
-    change: string;
-}
+// Base Mainnet Addresses
+const TOKENS = [
+    { symbol: 'USDC', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as `0x${string}`, name: 'USD Coin' },
+    { symbol: 'cbETH', address: '0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22' as `0x${string}`, name: 'Coinbase Wrapped Staked ETH' },
+    { symbol: 'WETH', address: '0x4200000000000000000000000000000000000006' as `0x${string}`, name: 'Wrapped Ether' },
+];
 
-export function WalletOverview({ balance, portfolio }: { balance?: number; portfolio?: Asset[] }) {
-    const { isConnected } = useAccount();
+export function WalletOverview() {
+    const { address, isConnected } = useAccount();
+
+    const { data: ethBalance } = useBalance({ address });
+
+    // Fetch individual token balances
+    // Note: in a real prod app, you'd use a multicall or indexer API (like Alchemy/Covalent) 
+    // to avoid many individual hooks, but this works for a few specific tokens.
+    const { data: usdcBalance } = useBalance({ address, token: TOKENS[0].address });
+    const { data: cbEthBalance } = useBalance({ address, token: TOKENS[1].address });
+    const { data: wethBalance } = useBalance({ address, token: TOKENS[2].address });
+
+    const portfolio = useMemo(() => {
+        const assets = [];
+
+        // Native ETH
+        if (ethBalance && Number(ethBalance.formatted) > 0) {
+            assets.push({
+                symbol: ethBalance.symbol,
+                name: 'Ethereum',
+                amount: Number(Number(ethBalance.formatted).toFixed(4)),
+                value: 0, // In a real app we need price feeds. For now we just show amount or 0 value.
+            });
+        }
+
+        // USDC
+        if (usdcBalance && Number(usdcBalance.formatted) > 0) {
+            assets.push({
+                symbol: TOKENS[0].symbol,
+                name: TOKENS[0].name,
+                amount: Number(Number(usdcBalance.formatted).toFixed(2)),
+                value: Number(usdcBalance.formatted), // USDC is approx $1
+            });
+        }
+
+        // cbETH
+        if (cbEthBalance && Number(cbEthBalance.formatted) > 0) {
+            assets.push({
+                symbol: TOKENS[1].symbol,
+                name: TOKENS[1].name,
+                amount: Number(Number(cbEthBalance.formatted).toFixed(4)),
+                value: 0,
+            });
+        }
+
+        // WETH
+        if (wethBalance && Number(wethBalance.formatted) > 0) {
+            assets.push({
+                symbol: TOKENS[2].symbol,
+                name: TOKENS[2].name,
+                amount: Number(Number(wethBalance.formatted).toFixed(4)),
+                value: 0,
+            });
+        }
+
+        return assets;
+    }, [ethBalance, usdcBalance, cbEthBalance, wethBalance]);
+
+    // Calculate estimated total (only USDC part is accurate without price feed)
+    const totalBalance = useMemo(() => {
+        let total = 0;
+        portfolio.forEach(p => {
+            if (p.symbol === 'USDC') total += p.value;
+            // For ETH/cbETH we would need price. 
+            // For now, let's just display USDC value or 0 if no USDC.
+        });
+        return total;
+    }, [portfolio]);
 
     return (
         <div className="w-full rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700 shadow-xl overflow-hidden relative min-h-[400px]">
@@ -65,21 +131,23 @@ export function WalletOverview({ balance, portfolio }: { balance?: number; portf
                     <>
                         {/* Total Balance */}
                         <div className="flex flex-col">
-                            <span className="text-slate-400 text-sm">Total Balance</span>
+                            <span className="text-slate-400 text-sm">Est. Balance (USDC only)</span>
                             <div className="text-4xl font-bold text-white tracking-tight">
-                                ${balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
+                            <p className="text-xs text-slate-500 mt-1">
+                                *Requires price feed for full ETH valuation
+                            </p>
                         </div>
 
                         {/* Assets List */}
                         <div className="flex flex-col gap-3">
                             <h3 className="text-slate-300 text-sm font-medium">Assets</h3>
                             <div className="flex flex-col gap-2">
-                                {portfolio && portfolio.length > 0 ? (
+                                {portfolio.length > 0 ? (
                                     portfolio.map((asset, index) => (
                                         <div key={index} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-colors border border-slate-700/50">
                                             <div className="flex items-center gap-3">
-                                                {/* Icon Placeholder */}
                                                 <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-lg">
                                                     {asset.symbol[0]}
                                                 </div>
@@ -89,10 +157,10 @@ export function WalletOverview({ balance, portfolio }: { balance?: number; portf
                                                 </div>
                                             </div>
                                             <div className="flex flex-col items-end">
-                                                <span className="font-medium text-white text-sm">${asset.value.toLocaleString()}</span>
+                                                <span className="font-medium text-white text-sm">
+                                                    {asset.value > 0 ? `$${asset.value.toLocaleString()}` : '-'}
+                                                </span>
                                                 <span className="text-xs text-slate-400">{asset.amount} {asset.symbol}</span>
-                                                {/* Optional: Change Indicator */}
-                                                {/* <span className="text-xs text-emerald-400">{asset.change}</span> */}
                                             </div>
                                         </div>
                                     ))
