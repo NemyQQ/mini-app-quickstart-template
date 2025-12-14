@@ -20,24 +20,24 @@ export const minikitConfig = {
   },
 
   miniapp: {
-    version: "1",
-    name: "Mini App Quickstart Template",
-    subtitle: "Quickstart Template",
+    version: "1.0.0",
+    name: "Alpha Scout",
+    subtitle: "Smart Yields & Social Signals",
     description:
-      "A starter template for building Base Mini Apps using Next.js. By Trio Blockchain Labs.",
+      "Optimize your portfolio with passive yields and social alpha signals from the Farcaster network. Don't just save—invest with the smart money.",
     screenshotUrls: [],
     iconUrl: `${ROOT_URL}/icon.png`,
     splashImageUrl: `${ROOT_URL}/splash.png`,
-    splashBackgroundColor: "#000000",
+    splashBackgroundColor: "#0f172a", // Slate-900 for premium dark mode
     homeUrl: ROOT_URL,
     webhookUrl: `${ROOT_URL}/api/webhook`,
-    primaryCategory: "developer-tools",
-    tags: ["developer-tools", "productivity"],
+    primaryCategory: "finance",
+    tags: ["finance", "social", "defi", "base"],
     heroImageUrl: `${ROOT_URL}/hero.png`,
-    tagline: "Ship mini apps faster. By TriO",
-    ogTitle: "Mini App Quickstart Template",
+    tagline: "Your money should never sleep.",
+    ogTitle: "Alpha Scout - Yield & Social Signals",
     ogDescription:
-      "A template for building Base Mini Apps using Next.js and TypeScript. By Trio Blockchain Labs",
+      "Discover hidden yields and follow the smart money on Base. Built on Farcaster.",
     ogImageUrl: `${ROOT_URL}/hero.png`,
   },
 } as const;
