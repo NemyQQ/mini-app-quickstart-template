@@ -47,6 +47,15 @@ export function RecommendationCard({ data, onInvest }: { data: Opportunity; onIn
                     <p className={cn("text-2xl font-black", isAlpha ? "text-purple-400" : "text-emerald-400")}>
                         {data.apy}%
                     </p>
+                    {/* Price Data */}
+                    {data.price && (
+                        <div className="mt-1 flex flex-col items-end">
+                            <p className="text-xs text-slate-300 font-mono">{data.price}</p>
+                            <p className={cn("text-[10px]", data.change24h?.startsWith("-") ? "text-red-400" : "text-emerald-400")}>
+                                {data.change24h && !data.change24h.startsWith("-") ? "+" : ""}{data.change24h} (24h)
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
 

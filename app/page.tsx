@@ -1,22 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { WalletOverview } from "@/components/WalletOverview";
 import { RecommendationCard } from "@/components/RecommendationCard";
-import { USER_WALLET, OPPORTUNITIES } from "@/lib/mockData";
+import { USER_WALLET, Opportunity } from "@/lib/mockData";
+import { socialAlphaService } from "@/lib/services/socialAlpha";
+import { TransactionModal } from "@/components/TransactionModal";
 
 export default function Home() {
-  const [investedId, setInvestedId] = useState<string | null>(null);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Transaction Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<string>("");
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await socialAlphaService.fetchOpportunities();
+        setOpportunities(data);
+      } catch (error) {
+        console.error("Failed to fetch opportunities:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const handleInvest = (id: string) => {
-    // In a real app, this would trigger a transaction
-    console.log("Investing in:", id);
-    setInvestedId(id);
-    alert(`Simulating investment flow for ${id}...`);
+    const opp = opportunities.find(o => o.id === id);
+    setSelectedOpportunity(opp?.protocol || "Protocol");
+    setIsModalOpen(true);
   };
 
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-8 pb-20 font-sans">
+      <TransactionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        opportunityName={selectedOpportunity}
+      />
+
       <div className="max-w-md mx-auto space-y-8">
 
         {/* Header */}
@@ -39,47 +66,58 @@ export default function Home() {
           <WalletOverview balance={USER_WALLET.balance} asset={USER_WALLET.asset} />
         </section>
 
-        {/* Section 1: Yield Scout (Passive) */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-1 h-6 rounded-full bg-emerald-500" />
-            <h2 className="text-lg font-bold text-white">Yield Scout (Passive)</h2>
+        {isLoading ? (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-4 bg-slate-800 rounded w-1/3"></div>
+            <div className="h-40 bg-slate-900/50 rounded-xl border border-slate-800"></div>
+            <div className="h-4 bg-slate-800 rounded w-1/3"></div>
+            <div className="h-40 bg-slate-900/50 rounded-xl border border-slate-800"></div>
           </div>
-          <p className="text-sm text-slate-400 mb-4">
-            Low risk, stable returns for your idle assets.
-          </p>
+        ) : (
+          <>
+            {/* Section 1: Yield Scout (Passive) */}
+            <section className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-1 h-6 rounded-full bg-emerald-500" />
+                <h2 className="text-lg font-bold text-white">Yield Scout (Passive)</h2>
+              </div>
+              <p className="text-sm text-slate-400 mb-4">
+                Low risk, stable returns for your idle assets.
+              </p>
 
-          <div className="space-y-4">
-            {OPPORTUNITIES.filter(o => o.type === "passive").map(opp => (
-              <RecommendationCard
-                key={opp.id}
-                data={opp}
-                onInvest={handleInvest}
-              />
-            ))}
-          </div>
-        </section>
+              <div className="space-y-4">
+                {opportunities.filter(o => o.type === "passive").map(opp => (
+                  <RecommendationCard
+                    key={opp.id}
+                    data={opp}
+                    onInvest={handleInvest}
+                  />
+                ))}
+              </div>
+            </section>
 
-        {/* Section 2: Social Alpha (Active) */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-1 h-6 rounded-full bg-purple-500" />
-            <h2 className="text-lg font-bold text-white">Social Alpha (Active)</h2>
-          </div>
-          <p className="text-sm text-slate-400 mb-4">
-            High APY opportunities validated by your network.
-          </p>
+            {/* Section 2: Social Alpha (Active) */}
+            <section className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-1 h-6 rounded-full bg-purple-500" />
+                <h2 className="text-lg font-bold text-white">Social Alpha (Active)</h2>
+              </div>
+              <p className="text-sm text-slate-400 mb-4">
+                High APY opportunities validated by your network.
+              </p>
 
-          <div className="space-y-4">
-            {OPPORTUNITIES.filter(o => o.type === "alpha").map(opp => (
-              <RecommendationCard
-                key={opp.id}
-                data={opp}
-                onInvest={handleInvest}
-              />
-            ))}
-          </div>
-        </section>
+              <div className="space-y-4">
+                {opportunities.filter(o => o.type === "alpha").map(opp => (
+                  <RecommendationCard
+                    key={opp.id}
+                    data={opp}
+                    onInvest={handleInvest}
+                  />
+                ))}
+              </div>
+            </section>
+          </>
+        )}
 
         <footer className="pt-8 text-center text-xs text-slate-600">
           <p>Powered by Base & OnchainKit</p>

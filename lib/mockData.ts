@@ -17,6 +17,8 @@ export interface Opportunity {
     description: string;
     tvl?: string;
     socialSignals?: SocialSignal[];
+    price?: string;
+    change24h?: string;
 }
 
 export const USER_WALLET = {
