@@ -4,15 +4,14 @@ import {
     ConnectWallet,
     Wallet,
     WalletDropdown,
-    WalletDropdownDisconnect,
-    WalletDropdownLink
+    WalletAdvancedAddressDetails,
+    WalletAdvancedTokenHoldings,
+    WalletAdvancedTransactionActions,
+    WalletAdvancedWalletActions,
 } from '@coinbase/onchainkit/wallet';
 import {
-    Address,
     Avatar,
     Name,
-    Identity,
-    EthBalance,
 } from '@coinbase/onchainkit/identity';
 
 export function WalletOverview({ balance, asset }: { balance?: number; asset?: string }) {
@@ -40,19 +39,10 @@ export function WalletOverview({ balance, asset }: { balance?: number; asset?: s
                         <Name />
                     </ConnectWallet>
                     <WalletDropdown>
-                        <Identity className="px-4 pt-3 pb-2">
-                            <Avatar />
-                            <Name />
-                            <Address className="text-slate-400" hasCopyAddressOnClick />
-                            <EthBalance />
-                        </Identity>
-                        <WalletDropdownLink
-                            icon="wallet"
-                            href="https://keys.coinbase.com"
-                        >
-                            Wallet
-                        </WalletDropdownLink>
-                        <WalletDropdownDisconnect />
+                        <WalletAdvancedWalletActions />
+                        <WalletAdvancedAddressDetails />
+                        <WalletAdvancedTransactionActions />
+                        <WalletAdvancedTokenHoldings />
                     </WalletDropdown>
                 </Wallet>
 
