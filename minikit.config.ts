@@ -20,7 +20,7 @@ export const minikitConfig = {
   },
 
   miniapp: {
-    version: "1.0.0",
+    version: "1",
     name: "Alpha Scout",
     subtitle: "Smart Yields & Social Signals",
     description:
