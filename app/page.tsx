@@ -85,6 +85,6 @@ export default function Home() {
           <p>Powered by Base & OnchainKit</p>
         </footer>
       </div>
-    </main>
+    </main >
   );
 }
