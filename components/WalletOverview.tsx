@@ -14,7 +14,6 @@ import {
     Identity,
     EthBalance,
 } from '@coinbase/onchainkit/identity';
-import { color } from '@coinbase/onchainkit/theme';
 
 export function WalletOverview({ balance, asset }: { balance?: number; asset?: string }) {
     return (
@@ -41,10 +40,10 @@ export function WalletOverview({ balance, asset }: { balance?: number; asset?: s
                         <Name />
                     </ConnectWallet>
                     <WalletDropdown>
-                        <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+                        <Identity className="px-4 pt-3 pb-2">
                             <Avatar />
                             <Name />
-                            <Address className={color.foregroundMuted} />
+                            <Address className="text-slate-400" hasCopyAddressOnClick />
                             <EthBalance />
                         </Identity>
                         <WalletDropdownLink
