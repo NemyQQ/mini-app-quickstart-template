@@ -63,7 +63,7 @@ export default function Home() {
 
         {/* Wallet Scanner */}
         <section>
-          <WalletOverview balance={USER_WALLET.balance} asset={USER_WALLET.asset} />
+          <WalletOverview balance={USER_WALLET.balance} portfolio={USER_WALLET.portfolio} />
         </section>
 
         {isLoading ? (
