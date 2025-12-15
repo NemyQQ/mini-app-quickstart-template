@@ -25,6 +25,9 @@ export const socialAlphaService = {
         const apiKey = process.env.NEXT_PUBLIC_NEYNAR_API_KEY || process.env.NEXT_PUBLIC_AIRSTACK_API_KEY;
         const shouldUseRealData = !!apiKey && apiKey !== "";
 
+        console.log("DEBUG: Fetching opportunities. Real Data Mode:", shouldUseRealData);
+        if (apiKey) console.log("DEBUG: API Key detected (first 4 chars):", apiKey.substring(0, 4));
+
         // 2. Fetch Base Opportunities (Mock)
         let opportunities = [...OPPORTUNITIES];
 
@@ -121,6 +124,7 @@ const ERC20_ABI = parseAbi([
 
 async function fetchNeynarVerifiedSignals(symbol: string, tokenAddress: string, minBalance: number, apiKey: string): Promise<SocialSignal[]> {
     try {
+        console.log(`DEBUG: Searching Neynar for ${symbol}...`);
         // Step 1: Search Casts via Neynar
         const searchUrl = `https://api.neynar.com/v2/farcaster/cast/search?q=${symbol}&limit=15`;
         const response = await fetch(searchUrl, {
@@ -130,10 +134,14 @@ async function fetchNeynarVerifiedSignals(symbol: string, tokenAddress: string, 
             }
         });
 
-        if (!response.ok) return [];
+        if (!response.ok) {
+            console.error(`DEBUG: Neynar API Error ${response.status}: ${response.statusText}`);
+            return [];
+        }
 
         const json = await response.json();
         const casts = json.result?.casts || [];
+        console.log(`DEBUG: Found ${casts.length} casts for ${symbol}`);
 
         // Step 2: Verify Balances (Parallel)
         const verifiedSignals: SocialSignal[] = [];
@@ -157,10 +165,11 @@ async function fetchNeynarVerifiedSignals(symbol: string, tokenAddress: string, 
                 });
 
                 // Convert Wei (assuming 18 decimals roughly for check)
-                // AERO/DEGEN are 18 decimals. 
+                // AERO/DEGEN are 18 decimals.
                 const readableBalance = Number(balance) / 10 ** 18;
 
                 if (readableBalance >= minBalance) {
+                    console.log(`DEBUG: Verified user ${cast.author.username} holds ${readableBalance} ${symbol}`);
                     verifiedSignals.push({
                         username: cast.author.username,
                         avatar: cast.author.pfp_url,
@@ -173,6 +182,7 @@ async function fetchNeynarVerifiedSignals(symbol: string, tokenAddress: string, 
             }
         }));
 
+        console.log(`DEBUG: Total verified signals for ${symbol}: ${verifiedSignals.length}`);
         return verifiedSignals.slice(0, 3); // Return top 3 verified
 
     } catch (error) {

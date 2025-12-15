@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { WalletOverview } from "@/components/WalletOverview";
 import { RecommendationCard } from "@/components/RecommendationCard";
+import { SocialAlphaFeed } from "@/components/SocialAlphaFeed";
 import { USER_WALLET, Opportunity } from "@/lib/mockData";
 import { socialAlphaService } from "@/lib/services/socialAlpha";
 import { TransactionModal } from "@/components/TransactionModal";
@@ -96,26 +97,11 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Section 2: Social Alpha (Active) */}
-            <section className="space-y-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-1 h-6 rounded-full bg-purple-500" />
-                <h2 className="text-lg font-bold text-white">Social Alpha (Active)</h2>
-              </div>
-              <p className="text-sm text-slate-400 mb-4">
-                High APY opportunities validated by your network.
-              </p>
-
-              <div className="space-y-4">
-                {opportunities.filter(o => o.type === "alpha").map(opp => (
-                  <RecommendationCard
-                    key={opp.id}
-                    data={opp}
-                    onInvest={handleInvest}
-                  />
-                ))}
-              </div>
-            </section>
+            {/* Section 2: Social Alpha (Active) - Refactored */}
+            <SocialAlphaFeed
+              opportunities={opportunities}
+              onInvest={handleInvest}
+            />
           </>
         )}
 
