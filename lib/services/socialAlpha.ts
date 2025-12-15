@@ -3,7 +3,7 @@ import { TRACKED_TOKENS } from "../constants";
 import { createPublicClient, http, parseAbi } from "viem";
 import { base } from "viem/chains";
 
-const COINGECKO_API = "https://api.coingecko.com/api/v3/simple/price?ids=aerodrome-finance,degen-base&vs_currencies=usd&include_24hr_change=true";
+const COINGECKO_API = "https://api.coingecko.com/api/v3/simple/price?ids=aerodrome-finance,degen-base,brett,toshi-the-cat&vs_currencies=usd&include_24hr_change=true";
 
 // Initialize Viem Client for Base
 const publicClient = createPublicClient({
@@ -39,6 +39,14 @@ export const socialAlphaService = {
                     let tokenKey = "";
                     if (opp.protocol.includes("Aerodrome")) tokenKey = "aerodrome-finance";
                     if (opp.protocol.includes("Degen")) tokenKey = "degen-base";
+                    if (opp.protocol.includes("Brett")) tokenKey = "brett";
+                    if (opp.protocol.includes("Toshi")) tokenKey = "toshi-the-cat";
+                    if (opp.protocol.includes("Mog")) tokenKey = "mog-coin";
+                    if (opp.protocol.includes("Virtual")) tokenKey = "virtual-protocol";
+                    if (opp.protocol.includes("Prime")) tokenKey = "echelon-prime";
+                    if (opp.protocol.includes("Higher")) tokenKey = "higher";
+                    if (opp.protocol.includes("Keyboard")) tokenKey = "keyboard-cat";
+                    if (opp.protocol.includes("Base God")) tokenKey = "base-god";
 
                     if (tokenKey && priceData[tokenKey]) {
                         return {
