@@ -1,7 +1,18 @@
 "use client";
-
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import {
+    Swap,
+    SwapAmountInput,
+    SwapToggleButton,
+    SwapButton,
+    SwapMessage,
+    SwapToast,
+} from '@coinbase/onchainkit/swap';
+import type { Token } from '@coinbase/onchainkit/token';
+import { Wallet, ConnectWallet } from '@coinbase/onchainkit/wallet';
+import { useAccount } from 'wagmi';
+import { TRACKED_TOKENS, USDC_ADDRESS } from "@/lib/constants";
 
 interface TransactionModalProps {
     isOpen: boolean;
@@ -9,35 +20,33 @@ interface TransactionModalProps {
     opportunityName: string;
 }
 
-type Step = "confirm" | "pending" | "success";
-
 export function TransactionModal({ isOpen, onClose, opportunityName }: TransactionModalProps) {
-    const [step, setStep] = useState<Step>("confirm");
+    const { address } = useAccount();
 
-    // Reset state when opened
-    useEffect(() => {
-        if (isOpen) setStep("confirm");
-    }, [isOpen]);
-
-    // Auto-advance for simulation
-    useEffect(() => {
-        if (!isOpen) return;
-
-        if (step === "confirm") {
-            const timer = setTimeout(() => setStep("pending"), 1500); // Simulate user signing
-            return () => clearTimeout(timer);
+    const toToken = useMemo(() => {
+        const tracked = TRACKED_TOKENS.find(t => opportunityName.includes(t.name));
+        if (tracked) {
+            return {
+                name: tracked.name,
+                address: tracked.address,
+                symbol: tracked.symbol,
+                decimals: 18,
+                image: "", // OnhainKit fetches this usually
+                chainId: 8453, // Base
+            } as Token;
         }
+        return null;
+    }, [opportunityName]);
 
-        if (step === "pending") {
-            const timer = setTimeout(() => setStep("success"), 2500); // Simulate blockchain confirmation
-            return () => clearTimeout(timer);
-        }
-
-        if (step === "success") {
-            const timer = setTimeout(onClose, 2000); // Auto close after success
-            return () => clearTimeout(timer);
-        }
-    }, [step, isOpen, onClose]);
+    // Default From Token (USDC)
+    const fromToken: Token = {
+        name: "USD Coin",
+        address: USDC_ADDRESS,
+        symbol: "USDC",
+        decimals: 6,
+        image: "https://d3r81g40ycuhqg.cloudfront.net/wallet/wais/44/2b/442b80bd16af0c0d9b22e03a16753823fe825e6dddd9f3aeb93ede4627881d60-USDC.png",
+        chainId: 8453,
+    };
 
     return (
         <AnimatePresence>
@@ -61,54 +70,47 @@ export function TransactionModal({ isOpen, onClose, opportunityName }: Transacti
                         >
                             {/* Header */}
                             <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-                                <h3 className="text-white font-bold">Transaction Status</h3>
+                                <h3 className="text-white font-bold">Trade {opportunityName}</h3>
                                 <button onClick={onClose} className="text-slate-500 hover:text-white">✕</button>
                             </div>
 
                             {/* Content */}
-                            <div className="p-8 flex flex-col items-center text-center space-y-6">
-
-                                {/* Icons based on state */}
-                                <div className="relative">
-                                    {step === "confirm" && (
-                                        <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center animate-pulse">
-                                            <span className="text-3xl">✍️</span>
-                                        </div>
-                                    )}
-                                    {step === "pending" && (
-                                        <div className="w-16 h-16 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 animate-spin" />
-                                    )}
-                                    {step === "success" && (
-                                        <motion.div
-                                            initial={{ scale: 0 }} animate={{ scale: 1 }}
-                                            className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center border-2 border-emerald-500"
-                                        >
-                                            <span className="text-3xl">✓</span>
-                                        </motion.div>
-                                    )}
-                                </div>
-
-                                {/* Text */}
-                                <div className="space-y-2">
-                                    <h4 className="text-xl font-bold text-white">
-                                        {step === "confirm" && "Waiting for Signature"}
-                                        {step === "pending" && "Transaction Submitted"}
-                                        {step === "success" && "Success!"}
-                                    </h4>
-                                    <p className="text-sm text-slate-400">
-                                        {step === "confirm" && `Please sign the request in your wallet to invest in ${opportunityName}.`}
-                                        {step === "pending" && "Waiting for block confirmation on Base..."}
-                                        {step === "success" && `Successfully invested in ${opportunityName}.`}
-                                    </p>
-                                </div>
-
-                                {/* Steps Indicator */}
-                                <div className="flex gap-2">
-                                    <div className={`h-1.5 w-8 rounded-full transition-colors ${step === "confirm" ? "bg-blue-500" : "bg-slate-700"}`} />
-                                    <div className={`h-1.5 w-8 rounded-full transition-colors ${step === "pending" ? "bg-indigo-500" : "bg-slate-700"}`} />
-                                    <div className={`h-1.5 w-8 rounded-full transition-colors ${step === "success" ? "bg-emerald-500" : "bg-slate-700"}`} />
-                                </div>
-
+                            <div className="p-4">
+                                {!address ? (
+                                    <div className="flex flex-col items-center gap-4 py-8">
+                                        <p className="text-slate-400 text-center">Connect wallet to trade</p>
+                                        <Wallet>
+                                            <ConnectWallet className="bg-white text-black font-bold px-4 py-2 rounded-full" />
+                                        </Wallet>
+                                    </div>
+                                ) : toToken ? (
+                                    <div className="w-full">
+                                        <Swap className="w-full" isSponsored>
+                                            <SwapAmountInput
+                                                label="Sell"
+                                                swappableTokens={[fromToken]}
+                                                token={fromToken}
+                                                type="from"
+                                            />
+                                            <SwapToggleButton />
+                                            <SwapAmountInput
+                                                label="Buy"
+                                                swappableTokens={[toToken]}
+                                                token={toToken}
+                                                type="to"
+                                            />
+                                            <div className="h-4" />
+                                            <SwapButton className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg" />
+                                            <SwapMessage className="text-xs text-slate-400 mt-2 text-center" />
+                                            <SwapToast />
+                                        </Swap>
+                                    </div>
+                                ) : (
+                                    <div className="py-8 text-center text-slate-400">
+                                        <p>Trading not available via Swap for {opportunityName}.</p>
+                                        <p className="text-xs mt-2">Please use an external DEX.</p>
+                                    </div>
+                                )}
                             </div>
                         </motion.div>
                     </motion.div>
@@ -117,3 +119,4 @@ export function TransactionModal({ isOpen, onClose, opportunityName }: Transacti
         </AnimatePresence>
     );
 }
+

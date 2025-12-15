@@ -1,16 +1,19 @@
 import { Opportunity, OPPORTUNITIES, SocialSignal } from "../mockData";
-
-// Candidates we want to track social signals for
-const TRACKED_TOKENS = [
-    { id: "alpha-1", query: "Aerodrome OR $AERO", name: "Aerodrome" },
-    { id: "alpha-2", query: "Degen OR $DEGEN", name: "Degen" }, // Example: Adding support for more
-];
+import { TRACKED_TOKENS } from "../constants";
+import { createPublicClient, http, parseAbi } from "viem";
+import { base } from "viem/chains";
 
 const COINGECKO_API = "https://api.coingecko.com/api/v3/simple/price?ids=aerodrome-finance,degen-base&vs_currencies=usd&include_24hr_change=true";
 
+// Initialize Viem Client for Base
+const publicClient = createPublicClient({
+    chain: base,
+    transport: http()
+});
+
 /**
  * Service to handle fetching of investment opportunities and social signals.
- * Now supports real data fetching via Neynar API and CoinGecko (for Onchain Price).
+ * Now supports Neynar API + Onchain Verification via Viem.
  */
 export const socialAlphaService = {
     /**
@@ -18,7 +21,8 @@ export const socialAlphaService = {
      */
     fetchOpportunities: async (): Promise<Opportunity[]> => {
         // 1. Check for API Key
-        const apiKey = process.env.NEXT_PUBLIC_AIRSTACK_API_KEY;
+        // Note: User will now use NEXT_PUBLIC_NEYNAR_API_KEY
+        const apiKey = process.env.NEXT_PUBLIC_NEYNAR_API_KEY || process.env.NEXT_PUBLIC_AIRSTACK_API_KEY;
         const shouldUseRealData = !!apiKey && apiKey !== "";
 
         // 2. Fetch Base Opportunities (Mock)
@@ -57,9 +61,19 @@ export const socialAlphaService = {
                     opportunities.map(async (opp) => {
                         if (opp.type === "alpha") {
                             const tracker = TRACKED_TOKENS.find(t => opp.protocol.includes(t.name)) || TRACKED_TOKENS[0];
-                            // Use the new Airstack fetcher
-                            const signals = await fetchAirstackSignals(tracker.name.toUpperCase(), apiKey); // "AERODROME" or "DEGEN"
-                            return { ...opp, socialSignals: signals };
+
+                            // Strategy: Search Neynar -> Verify Balance with Viem
+                            const signals = await fetchNeynarVerifiedSignals(
+                                tracker.symbol,
+                                tracker.address,
+                                tracker.threshold,
+                                apiKey
+                            );
+
+                            // Only update if we found valid signals
+                            if (signals.length > 0) {
+                                return { ...opp, socialSignals: signals };
+                            }
                         }
                         return opp;
                     })
@@ -91,6 +105,74 @@ export const socialAlphaService = {
     }
 };
 
+// --- LOGIC: Neynar Search + Viem Verify ---
+
+const ERC20_ABI = parseAbi([
+    'function balanceOf(address owner) view returns (uint256)'
+]);
+
+async function fetchNeynarVerifiedSignals(symbol: string, tokenAddress: string, minBalance: number, apiKey: string): Promise<SocialSignal[]> {
+    try {
+        // Step 1: Search Casts via Neynar
+        const searchUrl = `https://api.neynar.com/v2/farcaster/cast/search?q=${symbol}&limit=15`;
+        const response = await fetch(searchUrl, {
+            headers: {
+                "accept": "application/json",
+                "api_key": apiKey
+            }
+        });
+
+        if (!response.ok) return [];
+
+        const json = await response.json();
+        const casts = json.result?.casts || [];
+
+        // Step 2: Verify Balances (Parallel)
+        const verifiedSignals: SocialSignal[] = [];
+
+        await Promise.all(casts.map(async (cast: any) => {
+            // Optimize: Limit verification to max 3 valid items to save RPC calls
+            if (verifiedSignals.length >= 3) return;
+
+            const userAddress = cast.author?.verifications ? cast.author.verifications[0] : null;
+
+            // If user has no connected verified address, skip
+            if (!userAddress) return;
+
+            try {
+                // Check Balance on Base
+                const balance = await publicClient.readContract({
+                    address: tokenAddress as `0x${string}`,
+                    abi: ERC20_ABI,
+                    functionName: 'balanceOf',
+                    args: [userAddress as `0x${string}`]
+                });
+
+                // Convert Wei (assuming 18 decimals roughly for check)
+                // AERO/DEGEN are 18 decimals. 
+                const readableBalance = Number(balance) / 10 ** 18;
+
+                if (readableBalance >= minBalance) {
+                    verifiedSignals.push({
+                        username: cast.author.username,
+                        avatar: cast.author.pfp_url,
+                        action: `posted about $${symbol} (Holds ${readableBalance.toFixed(0)} ${symbol})`,
+                        timeAgo: timeAgo(new Date(cast.timestamp)),
+                    });
+                }
+            } catch (err) {
+                // Ignore RPC errors for individual users
+            }
+        }));
+
+        return verifiedSignals.slice(0, 3); // Return top 3 verified
+
+    } catch (error) {
+        console.warn(`Neynar/Viem flow failed for ${symbol}`, error);
+        return [];
+    }
+}
+
 // --- SMART MOCK DATA ---
 const MOCK_CASTS: SocialSignal[] = [
     { username: "vitalik.eth", avatar: "https://i.pravatar.cc/150?u=vitalik", action: "casted: 'Base L2 scaling looks promising'", timeAgo: "1h ago" },
@@ -102,58 +184,6 @@ const MOCK_CASTS: SocialSignal[] = [
     { username: "nft_collector", avatar: "https://i.pravatar.cc/150?u=nft", action: "minted new frames", timeAgo: "12m ago" },
     { username: "alpha_hunter", avatar: "https://i.pravatar.cc/150?u=hunter", action: "cleaning up my wallet for $AERO", timeAgo: "1m ago" },
 ];
-
-/**
- * Helper to fetch casts from Airstack API (Free Tier)
- */
-async function fetchAirstackSignals(keyword: string, apiKey: string): Promise<SocialSignal[]> {
-    const query = `
-    query MyQuery {
-      FarcasterCasts(
-        input: {filter: {text: {_pattern: "${keyword}"}}, blockchain: ALL, limit: 3}
-      ) {
-        Cast {
-          castedAtTimestamp
-          text
-          castedBy {
-            profileName
-            profileImage
-          }
-        }
-      }
-    }
-  `;
-
-    try {
-        const response = await fetch("https://api.airstack.xyz/gql", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": apiKey
-            },
-            body: JSON.stringify({ query })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Airstack API Error: ${response.statusText}`);
-        }
-
-        const json = await response.json();
-        const casts = json.data?.FarcasterCasts?.Cast || [];
-
-        // Transform Airstack response to our SocialSignal format
-        return casts.map((cast: any) => ({
-            username: cast.castedBy?.profileName || "anon",
-            avatar: cast.castedBy?.profileImage || "https://i.pravatar.cc/150",
-            action: `posted: "${cast.text.substring(0, 40)}..."`, // Show snippet of the text
-            timeAgo: timeAgo(new Date(cast.castedAtTimestamp)),
-        }));
-
-    } catch (error) {
-        console.warn("Airstack fetch failed, returning empty signals", error);
-        return [];
-    }
-}
 
 /**
  * Simple helper to format time ago (e.g. "2h ago")
