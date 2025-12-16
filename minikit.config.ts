@@ -36,7 +36,7 @@ export const minikitConfig = {
     tags: ["finance", "social", "defi", "base"],
     heroImageUrl: `${ROOT_URL}/hero.png`,
     tagline: "Your money should never sleep.",
-    ogTitle: "Alpha Scout - Yield & Social Signals",
+    ogTitle: "Alpha Scout",
     ogDescription:
       "Discover hidden yields and follow the smart money on Base. Built on Farcaster.",
     ogImageUrl: `${ROOT_URL}/hero.png`,
