@@ -24,16 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: "en_US",
       type: "website",
     },
-    robots: {
-      index: false,
-      follow: false,
-      nocache: true,
-      googleBot: {
-        index: false,
-        follow: false,
-        noimageindex: true,
-      },
-    },
+    robots: "noindex, nofollow",
     other: {
       "fc:frame": JSON.stringify({
         version: minikitConfig.miniapp.version,

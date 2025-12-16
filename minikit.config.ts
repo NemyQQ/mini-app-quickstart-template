@@ -25,6 +25,7 @@ export const minikitConfig = {
     subtitle: "Smart Yields & Social Signals",
     description:
       "Optimize your portfolio with passive yields and social alpha signals from the Farcaster network. Don't just save—invest with the smart money.",
+    noindex: true,
     screenshotUrls: [`${ROOT_URL}/hero.png`],
     iconUrl: `${ROOT_URL}/icon.png`,
     splashImageUrl: `${ROOT_URL}/splash.png`,
