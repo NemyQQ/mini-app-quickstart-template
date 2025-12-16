@@ -44,7 +44,7 @@ export function RootProvider({ children }: { children: ReactNode }) {
             },
             wallet: {
               display: "modal",
-              preference: "smartWalletOnly",
+              preference: "all",
             },
           }}
         >

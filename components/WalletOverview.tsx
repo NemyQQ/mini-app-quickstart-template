@@ -9,10 +9,7 @@ import {
     WalletAdvancedTransactionActions,
     WalletAdvancedWalletActions,
 } from '@coinbase/onchainkit/wallet';
-import {
-    Avatar,
-    Name,
-} from '@coinbase/onchainkit/identity';
+
 import { useAccount, useBalance } from 'wagmi';
 import { SendModal } from './SendModal';
 import { useState, useMemo } from 'react';
@@ -160,10 +157,7 @@ export function WalletOverview() {
                             Wallet Overview
                         </h2>
                         <Wallet>
-                            <ConnectWallet className="bg-slate-800 hover:bg-slate-700 text-white rounded-xl px-3 py-1 h-auto text-xs border border-slate-700">
-                                <Avatar className="h-5 w-5" />
-                                <Name className="text-white" />
-                            </ConnectWallet>
+                            <ConnectWallet />
                             <WalletDropdown>
                                 <WalletAdvancedWalletActions />
                                 <WalletAdvancedAddressDetails />
