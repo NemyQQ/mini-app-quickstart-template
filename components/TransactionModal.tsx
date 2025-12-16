@@ -18,12 +18,14 @@ interface TransactionModalProps {
     isOpen: boolean;
     onClose: () => void;
     opportunityName: string;
+    targetAsset?: string;
 }
 
-export function TransactionModal({ isOpen, onClose, opportunityName }: TransactionModalProps) {
+export function TransactionModal({ isOpen, onClose, opportunityName, targetAsset }: TransactionModalProps) {
     const { address } = useAccount();
 
     const toToken = useMemo(() => {
+        // 1. Try to find by Protocol Name (e.g. "Aerodrome" -> AERO)
         const tracked = TRACKED_TOKENS.find(t => opportunityName.includes(t.name));
         if (tracked) {
             return {
@@ -31,12 +33,37 @@ export function TransactionModal({ isOpen, onClose, opportunityName }: Transacti
                 address: tracked.address,
                 symbol: tracked.symbol,
                 decimals: 18,
-                image: "", // OnhainKit fetches this usually
-                chainId: 8453, // Base
+                image: "",
+                chainId: 8453,
             } as Token;
         }
+
+        // 2. Fallback: Try to find by Asset Symbol (e.g. "USDC" -> USDC Address)
+        if (targetAsset) {
+            if (targetAsset.includes("USDC")) {
+                return {
+                    name: "USD Coin",
+                    address: USDC_ADDRESS,
+                    symbol: "USDC",
+                    decimals: 6,
+                    image: "",
+                    chainId: 8453,
+                } as Token;
+            }
+            if (targetAsset.includes("ETH") || targetAsset.includes("WETH")) {
+                return {
+                    name: "Wrapped Ether",
+                    address: "0x4200000000000000000000000000000000000006",
+                    symbol: "WETH",
+                    decimals: 18,
+                    image: "",
+                    chainId: 8453,
+                } as Token;
+            }
+        }
+
         return null;
-    }, [opportunityName]);
+    }, [opportunityName, targetAsset]);
 
     // Default From Token (USDC)
     const fromToken: Token = {

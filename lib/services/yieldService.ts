@@ -25,12 +25,28 @@ export const yieldService = {
                 p.apy > 0 // Positive yield
             );
 
-            // Sort by APY descending, but maybe limit extremely high risk ones? 
-            // For now just sort by TVL to show most popular/safe ones first
+            // Sort by TVL (highest first)
             basePools.sort((a: any, b: any) => b.tvlUsd - a.tvlUsd);
 
-            // Take top 10 and map to Opportunity interface
-            const opportunities: Opportunity[] = basePools.slice(0, 10).map((p: any, index: number) => ({
+            // Deduplicate: Allow only unique (Protocol + Symbol) combinations
+            // If multiple Morpho USDC pools exist, we pick the one with highest TVL (since we sorted by TVL)
+            const uniqueOpportunities: any[] = [];
+            const seen = new Set<string>();
+
+            for (const p of basePools) {
+                const protoName = formatProtocolName(p.project);
+                const key = `${protoName}-${p.symbol}`;
+
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueOpportunities.push(p);
+                }
+
+                if (uniqueOpportunities.length >= 10) break;
+            }
+
+            // Map results
+            const opportunities: Opportunity[] = uniqueOpportunities.map((p: any, index: number) => ({
                 id: `passive-live-${index}`,
                 type: "passive",
                 protocol: formatProtocolName(p.project),
@@ -41,7 +57,7 @@ export const yieldService = {
                 tvl: `$${(p.tvlUsd / 1000000).toFixed(1)}M`
             }));
 
-            console.log(`DEBUG: Found ${opportunities.length} active yield opportunities.`);
+            console.log(`DEBUG: Found ${opportunities.length} active (unique) yield opportunities.`);
             return opportunities;
         } catch (error) {
             console.error("Failed to fetch yield opportunities:", error);

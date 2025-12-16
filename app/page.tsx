@@ -16,6 +16,7 @@ export default function Home() {
   // Transaction Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<string>("");
+  const [selectedAsset, setSelectedAsset] = useState<string>("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -49,6 +50,7 @@ export default function Home() {
   const handleInvest = (id: string) => {
     const opp = opportunities.find(o => o.id === id);
     setSelectedOpportunity(opp?.protocol || "Protocol");
+    setSelectedAsset(opp?.asset || "");
     setIsModalOpen(true);
   };
 
