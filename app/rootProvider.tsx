@@ -1,10 +1,17 @@
 "use client";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { baseSepolia, base } from "wagmi/chains";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
+import sdk from "@farcaster/miniapp-sdk";
 import "@coinbase/onchainkit/styles.css";
 
 export function RootProvider({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    // Signal to Farcaster client that the frame/app is ready
+    sdk.actions.ready();
+    console.log("Farcaster SDK Ready Signal Sent");
+  }, []);
+
   return (
     <OnchainKitProvider
       apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
