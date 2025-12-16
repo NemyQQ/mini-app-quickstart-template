@@ -1,37 +1,54 @@
 "use client";
-import { ReactNode, useEffect } from "react";
-import { baseSepolia, base } from "wagmi/chains";
+
+import { ReactNode, useEffect, useState } from "react";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { http, createConfig, WagmiProvider } from 'wagmi';
+import { base } from 'wagmi/chains';
+import { coinbaseWallet } from 'wagmi/connectors';
 import sdk from "@farcaster/miniapp-sdk";
 import "@coinbase/onchainkit/styles.css";
 
+const queryClient = new QueryClient();
+
+const wagmiConfig = createConfig({
+  chains: [base],
+  connectors: [
+    coinbaseWallet({
+      appName: 'Alpha Scout',
+    }),
+  ],
+  transports: {
+    [base.id]: http(),
+  },
+});
+
 export function RootProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
-    // Signal to Farcaster client that the frame/app is ready
-    sdk.actions.ready();
-    console.log("Farcaster SDK Ready Signal Sent");
+    if (sdk && sdk.actions && sdk.actions.ready) {
+      sdk.actions.ready();
+      console.log("Farcaster SDK Ready Signal Sent");
+    }
   }, []);
 
   return (
-    <OnchainKitProvider
-      apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
-      chain={base}
-      config={{
-        appearance: {
-          mode: "auto",
-        },
-        wallet: {
-          display: "modal",
-          preference: "all",
-        },
-      }}
-      miniKit={{
-        enabled: true,
-        autoConnect: true,
-        notificationProxyUrl: undefined,
-      }}
-    >
-      {children}
-    </OnchainKitProvider>
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
+        <OnchainKitProvider
+          apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
+          chain={base}
+          config={{
+            appearance: {
+              mode: "auto",
+            },
+            wallet: {
+              display: "modal",
+            },
+          }}
+        >
+          {children}
+        </OnchainKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }
