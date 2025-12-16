@@ -10,6 +10,30 @@ export async function generateMetadata(): Promise<Metadata> {
     title: minikitConfig.miniapp.name,
     description: minikitConfig.miniapp.description,
     manifest: "/manifest.json",
+    openGraph: {
+      title: minikitConfig.miniapp.ogTitle || minikitConfig.miniapp.name,
+      description: minikitConfig.miniapp.ogDescription || minikitConfig.miniapp.description,
+      images: [
+        {
+          url: minikitConfig.miniapp.ogImageUrl || minikitConfig.miniapp.heroImageUrl || "",
+          width: 1200,
+          height: 630,
+          alt: minikitConfig.miniapp.name,
+        },
+      ],
+      locale: "en_US",
+      type: "website",
+    },
+    robots: {
+      index: false,
+      follow: false,
+      nocache: true,
+      googleBot: {
+        index: false,
+        follow: false,
+        noimageindex: true,
+      },
+    },
     other: {
       "fc:frame": JSON.stringify({
         version: minikitConfig.miniapp.version,
