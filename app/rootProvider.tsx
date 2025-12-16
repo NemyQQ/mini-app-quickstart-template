@@ -5,7 +5,7 @@ import { OnchainKitProvider } from "@coinbase/onchainkit";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, createConfig, WagmiProvider } from 'wagmi';
 import { base } from 'wagmi/chains';
-import { coinbaseWallet } from 'wagmi/connectors';
+import { coinbaseWallet, injected } from 'wagmi/connectors';
 import sdk from "@farcaster/miniapp-sdk";
 import "@coinbase/onchainkit/styles.css";
 
@@ -14,6 +14,7 @@ const queryClient = new QueryClient();
 const wagmiConfig = createConfig({
   chains: [base],
   connectors: [
+    injected(),
     coinbaseWallet({
       appName: 'Alpha Scout',
     }),
