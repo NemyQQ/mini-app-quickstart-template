@@ -6,6 +6,7 @@ import { RecommendationCard } from "@/components/RecommendationCard";
 import { SocialAlphaFeed } from "@/components/SocialAlphaFeed";
 import { USER_WALLET, Opportunity } from "@/lib/mockData";
 import { socialAlphaService } from "@/lib/services/socialAlpha";
+import { yieldService } from "@/lib/services/yieldService";
 import { TransactionModal } from "@/components/TransactionModal";
 
 export default function Home() {
@@ -19,8 +20,22 @@ export default function Home() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const data = await socialAlphaService.fetchOpportunities();
-        setOpportunities(data);
+        // Parallel Fetch: Social Signals + Real Yields
+        const [socialData, yieldData] = await Promise.all([
+          socialAlphaService.fetchOpportunities(),
+          yieldService.fetchYieldOpportunities()
+        ]);
+
+        // Merge strategies:
+        // 1. Get Alpha items from socialData
+        const socialAlphaItems = socialData.filter(o => o.type === "alpha");
+
+        // 2. Use Real Yield items (or fallback to socialData passive if yieldService fails/returns empty)
+        const passiveItems = yieldData.length > 0
+          ? yieldData
+          : socialData.filter(o => o.type === "passive");
+
+        setOpportunities([...passiveItems, ...socialAlphaItems]);
       } catch (error) {
         console.error("Failed to fetch opportunities:", error);
       } finally {
